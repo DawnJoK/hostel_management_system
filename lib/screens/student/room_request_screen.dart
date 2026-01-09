@@ -1,10 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class RoomRequestScreen extends StatelessWidget {
-  const RoomRequestScreen({super.key});
+class RoomRequestScreen extends StatefulWidget {
+  final String studentId;
+  final Map<String, dynamic> studentData;
+
+  const RoomRequestScreen(
+      {super.key, required this.studentId, required this.studentData});
+
+  @override
+  State<RoomRequestScreen> createState() => _RoomRequestScreenState();
+}
+
+class _RoomRequestScreenState extends State<RoomRequestScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _reasonController = TextEditingController();
+
+  String? _requestType;
+  String? _preferredRoomType;
+  bool _isLoading = false;
+
+  Future<void> _submitRequest() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await FirebaseFirestore.instance.collection('requests').add({
+        'studentId': widget.studentId,
+        'studentName': widget.studentData['name'],
+        'rollNo': widget.studentData['rollNo'],
+        'currentRoom': widget.studentData['roomNumber'] ?? 'Not Assigned',
+        'requestType': _requestType,
+        'preferredType': _preferredRoomType,
+        'reason': _reasonController.text.trim(),
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Request submitted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      _reasonController.clear();
+      setState(() {
+        _requestType = null;
+        _preferredRoomType = null;
+      });
+      _formKey.currentState!.reset();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currentRoom = widget.studentData['roomNumber'] ?? 'Not Assigned';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -12,7 +83,7 @@ class RoomRequestScreen extends StatelessWidget {
         children: [
           _buildInfoCard(
             title: "Current Allocation",
-            content: "Room 101 (Shared)",
+            content: "Room $currentRoom",
             icon: Icons.bed_outlined,
             color: Colors.blueAccent,
           ),
@@ -30,63 +101,79 @@ class RoomRequestScreen extends StatelessWidget {
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: "Request Type",
-                      border: OutlineInputBorder(),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: "Request Type",
+                        border: OutlineInputBorder(),
+                      ),
+                      // 'value' is deprecated in DropdownButtonFormField, use initialValue
+                      initialValue: _requestType,
+                      items: const [
+                        DropdownMenuItem(
+                            value: "change", child: Text("Room Change")),
+                        DropdownMenuItem(
+                            value: "new", child: Text("New Allotment")),
+                      ],
+                      onChanged: (v) => setState(() => _requestType = v),
+                      validator: (v) => v == null ? 'Please select type' : null,
                     ),
-                    items: const [
-                      DropdownMenuItem(
-                          value: "change", child: Text("Room Change")),
-                      DropdownMenuItem(
-                          value: "new", child: Text("New Allotment")),
-                    ],
-                    onChanged: (v) {},
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: "Preferred Room Type",
-                      border: OutlineInputBorder(),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: "Preferred Room Type",
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue: _preferredRoomType,
+                      items: const [
+                        DropdownMenuItem(
+                            value: "single", child: Text("Single")),
+                        DropdownMenuItem(
+                            value: "double", child: Text("Double")),
+                        DropdownMenuItem(value: "quad", child: Text("Quad")),
+                      ],
+                      onChanged: (v) => setState(() => _preferredRoomType = v),
+                      validator: (v) =>
+                          v == null ? 'Please select preference' : null,
                     ),
-                    items: const [
-                      DropdownMenuItem(value: "single", child: Text("Single")),
-                      DropdownMenuItem(value: "double", child: Text("Double")),
-                      DropdownMenuItem(value: "quad", child: Text("Quad")),
-                    ],
-                    onChanged: (v) {},
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: "Reason for Request",
-                      border: OutlineInputBorder(),
-                      alignLabelWithHint: true,
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _reasonController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: "Reason for Request",
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                      validator: (v) =>
+                          v!.isEmpty ? 'Please provide a reason' : null,
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Request submitted successfully!')),
-                        );
-                      },
-                      icon: const Icon(Icons.send),
-                      label: const Text("Submit Request"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        foregroundColor: Colors.white,
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _submitRequest,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2))
+                            : const Icon(Icons.send),
+                        label: Text(
+                            _isLoading ? "Submitting..." : "Submit Request"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -4,7 +4,11 @@ import 'package:hostel_2/screens/student/fee_screen.dart';
 import 'package:hostel_2/screens/student/complaints_screen.dart';
 
 class StudentMainScreen extends StatefulWidget {
-  const StudentMainScreen({super.key});
+  final String studentId;
+  final Map<String, dynamic> studentData;
+
+  const StudentMainScreen(
+      {super.key, required this.studentId, required this.studentData});
 
   @override
   State<StudentMainScreen> createState() => _StudentMainScreenState();
@@ -13,11 +17,20 @@ class StudentMainScreen extends StatefulWidget {
 class _StudentMainScreenState extends State<StudentMainScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    const RoomRequestScreen(),
-    const FeeScreen(),
-    const ComplaintsScreen(),
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      RoomRequestScreen(
+        studentId: widget.studentId,
+        studentData: widget.studentData,
+      ),
+      const FeeScreen(),
+      const ComplaintsScreen(),
+    ];
+  }
 
   final List<String> _titles = [
     "Requests",

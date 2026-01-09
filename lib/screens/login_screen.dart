@@ -52,9 +52,14 @@ class _LoginScreenState extends State<LoginScreen> {
             (route) => false,
           );
         } else {
+          final studentDoc = querySnapshot.docs.first;
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const StudentMainScreen()),
+            MaterialPageRoute(
+                builder: (context) => StudentMainScreen(
+                      studentId: studentDoc.id,
+                      studentData: studentDoc.data(),
+                    )),
             (route) => false,
           );
         }

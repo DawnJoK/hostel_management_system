@@ -8,6 +8,7 @@ import 'package:hostel_2/screens/login_selection_screen.dart';
 import 'package:hostel_2/screens/dashboard_screen.dart';
 import 'package:hostel_2/screens/rooms_screen.dart';
 import 'package:hostel_2/screens/students_screen.dart';
+import 'package:hostel_2/screens/warden_requests_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -108,6 +109,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       DashboardScreen(roomsRef: roomsRef, studentsRef: studentsRef),
       RoomsScreen(roomsRef: roomsRef),
       StudentsScreen(roomsRef: roomsRef, studentsRef: studentsRef),
+      const WardenRequestsScreen(),
     ];
 
     return Scaffold(
@@ -134,6 +136,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'Students',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.notifications_active_outlined),
+            selectedIcon: Icon(Icons.notifications_active),
+            label: 'Requests',
           ),
         ],
       ),
